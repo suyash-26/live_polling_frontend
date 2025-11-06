@@ -1,24 +1,27 @@
-import React from "react";
+import React, { useContext } from "react";
 import { useEffect } from "react";
 import { useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import io from "socket.io-client";
 import api from "../network/interceptors";
+import { AuthContext } from "../auth/contextProvider/AuthProvider";
+import AuthenticatedComponent from "./AuthenticatedComponent";
 
 export default function PollDetails() {
   const navigate = useNavigate();
   const { pollId } = useParams();
   const [pollDetails, setPollDetails] = useState(null);
-   const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState(null);
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
   const API_URL = import.meta.env.VITE_API_URL;
+  const { state, dispatch, logout } = useContext(AuthContext);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
-    
+
     if (pollId) {
-      newSocket.emit('join-poll', pollId);
+      newSocket.emit("join-poll", pollId);
     }
 
     return () => {
@@ -27,7 +30,7 @@ export default function PollDetails() {
   }, [pollId]);
 
   const fetchPollDetails = async () => {
-     try {
+    try {
       const res = await api.get(`${API_URL}/polls/${pollId}`);
       setPollDetails(res.data);
     } catch (err) {
@@ -41,12 +44,15 @@ export default function PollDetails() {
 
   const refreshPollDetails = () => {
     fetchPollDetails();
-  }
+  };
 
   return (
+    <AuthenticatedComponent>
       <div className="bg-[#101827] text-white w-full px-4 md:px-6 flex flex-col">
         <div className="poll-details-header flex justify-between py-2 md:py-5 items-center">
-          <p className="text-lg font-bold md:text-3xl">{pollDetails?.title || "-"}</p>
+          <p className="text-lg font-bold md:text-3xl">
+            {pollDetails?.title || "-"}
+          </p>
           <div className="flex gap-1 md:gap-2">
             <button className="py-1 md:py-3 px-2 md:px-6 text-xs md:text-lg rounded hover:bg-[#29303D]">
               Reset Votes
@@ -85,8 +91,9 @@ export default function PollDetails() {
           </div>
         </div>
         <div className="flex-1 overflow-auto">
-          <Outlet context={{pollDetails, refreshPollDetails, socket}} />
+          <Outlet context={{ pollDetails, refreshPollDetails, socket }} />
         </div>
       </div>
+    </AuthenticatedComponent>
   );
 }

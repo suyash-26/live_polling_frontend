@@ -5,12 +5,13 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import api from "../network/interceptors";
 import { useMemo } from "react";
+import { calculateElapsedTime } from "../utils";
+import Timer from "./live/Timer";
 
 export default function VoteDashboard() {
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
   const { pollId } = useParams();
   const [pollDetails, setPollDetails] = useState(null);
-  const [activeQuestionId, setActiveQuestionId] = useState(null);
 
   const fetchPollDetails = async () => {
     // Fetch active question from server if needed
@@ -27,8 +28,7 @@ export default function VoteDashboard() {
     const newSocket = io(SOCKET_URL);
     newSocket.emit("join-poll", pollId);
     newSocket.on("question-pushed", ({ questionId }) => {
-      console.log("Question pushed:", questionId);
-      setActiveQuestionId(questionId);
+      fetchPollDetails();
     });
     return () => {
       newSocket.off("question-pushed");
@@ -41,14 +41,20 @@ export default function VoteDashboard() {
   }, [pollId]);
 
   const activeQuestionDetails = useMemo(() => {
-    return pollDetails?.questions?.find((q) => q._id === activeQuestionId);
-  }, [activeQuestionId, pollDetails]);
-  console.log("Active Question ID:", activeQuestionDetails);
+    return pollDetails?.questions?.find((q) => q.isActive);
+  }, [pollDetails]);
   return (
     <div className="vote-dashboard bg-[#101827] text-white w-full px-4 md:px-6 flex flex-col h-screen">
-      {activeQuestionId ? (
+      {activeQuestionDetails ? (
         <div className="vote-dashboard-container flex flex-col items-center justify-center h-full">
           <h2 className="question-title">{activeQuestionDetails?.title}</h2>
+          <Timer
+            startTime={
+              activeQuestionDetails?.activeTime -
+              calculateElapsedTime(activeQuestionDetails?.lastActivatedAt)
+                .seconds
+            }
+          />
           {activeQuestionDetails?.options?.map((option, index) => (
             <button
               key={index}

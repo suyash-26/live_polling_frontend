@@ -14,3 +14,37 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+
+Issues Faced:
+
+1. After deploying on vercel, if i was reloading the page on any route other than root route(/) i was getting 404 NOT_FOUND.
+
+Reason & Soln ===>
+
+
+Reason for the 404 Error
+What's Happening:
+When you refresh a route like /about on Vercel:
+
+Browser sends request to yourdomain.com/about
+
+Vercel looks for a physical file/folder called /about in your build output
+
+No such file exists (it's a React Router virtual route)
+
+Vercel returns 404 because it can't find the resource
+
+Why This Occurs:
+SPA Nature: Your React app is a Single Page Application
+
+Client-side Routing: React Router handles navigation in the browser, not on the server
+
+No Physical Files: Routes like /about, /contact don't correspond to actual files in your dist folder
+
+Server Doesn't Know: Vercel's server needs to be told to serve index.html for all routes
+
+Soln => 
+
+use vercel.json file for configuration and most important part is "cleanUrls": false, in that as making it true persists error

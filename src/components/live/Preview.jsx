@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useEffect } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
+import Timer from "./Timer";
+import { calculateElapsedTime } from "../../utils";
 
 export default function Preview() {
   const [currentQuestionDetails, setCurrentQuestionDetails] = useState({});
@@ -9,23 +11,28 @@ export default function Preview() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("question-pushed", (data) => {
-      const question = pollDetails.questions.find(
-        (q) => q._id === data.questionId,
-      );
-      setCurrentQuestionDetails(question);
+    socket.on("question-pushed", async (data) => {
+      refreshPollDetails();
     });
     return () => {
       socket.off("question-pushed");
     };
   }, [socket, pollDetails]);
 
+  useEffect(() => {
+    const activeQuestion = pollDetails?.questions?.find(
+      (q) => q.isActive === true
+    );
+    setCurrentQuestionDetails(activeQuestion || null);
+  }, [pollDetails]);
+  console.log("jlk",calculateElapsedTime(currentQuestionDetails?.lastActivatedAt))
   return (
     <div className="pt-7">
       <h1 className="text-sm md:text-xl">Live Preview</h1>
       {currentQuestionDetails ? (
         <div className="flex flex-col justify-center gap-3 items-center text-sm md:text-lg mt-3 mb-5 p-2 md:p-4 rounded">
           <h1 className="text-xl">{currentQuestionDetails?.title}</h1>
+          <Timer startTime={currentQuestionDetails?.activeTime - calculateElapsedTime(currentQuestionDetails?.lastActivatedAt).seconds}/>
           {currentQuestionDetails?.options?.map((option, index) => (
             <div
               key={index}
